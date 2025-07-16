@@ -4,7 +4,7 @@
 #![feature(impl_trait_in_assoc_type)]
 
 use embassy_executor::Spawner;
-use embassy_time::{Duration, Timer};
+use embassy_time::{Duration, Timer, with_timeout};
 use esp_backtrace as _;
 use esp_hal::{
     rng::Rng,
@@ -255,11 +255,6 @@ async fn main(spawner: Spawner) {
                             Timer::after(Duration::from_millis(5000)).await;
                             break;
                         }
-                        ReasonCode::PacketIdentifierNotFound => {
-                            error!("pub PacketIdentifierNotFound Error");
-                            Timer::after(Duration::from_millis(5000)).await;
-                            break;
-                        }
                         _ => {
                             error!("pub Other MQTT Error: {:?}", mqtt_error);
                             Timer::after(Duration::from_millis(5000)).await;
@@ -267,29 +262,29 @@ async fn main(spawner: Spawner) {
                         }
                     },
                 }
-
-                match client.receive_message().await {
-                    Ok((topic, message)) => {
-                        let message_str = core::str::from_utf8(message).unwrap_or("<Invalid UTF-8>");
-                        info!("Received message on topic {:#?}: {:#?}", topic, message_str);
-                    }
-                    Err(mqtt_error) => match mqtt_error {
-                        ReasonCode::NetworkError => {
-                            info!("rec MQTT Network Error - Client Messsage Receive Error");
-                            Timer::after(Duration::from_millis(5000)).await;
-                            break;
-                        }
-                        _ => {
-                            info!("rec Other MQTT Error: {:?}", mqtt_error);
-                            Timer::after(Duration::from_millis(5000)).await;
-                            break;
-                        }
-                    },
-                }
             }
 
+            match with_timeout(Duration::from_millis(1000), client.receive_message()).await.ok() {
+                Some(Ok((topic, message))) => {
+                    let message_str = core::str::from_utf8(message).unwrap_or("<Invalid UTF-8>");
+                    info!("Received message on topic {:#?}: {:#?}", topic, message_str);
+                    Timer::after(Duration::from_millis(1000)).await;
+                }
+                Some(Err(mqtt_error)) => match mqtt_error {
+                    ReasonCode::NetworkError => {
+                        info!("rec MQTT Network Error - Client Messsage Receive Error");
+                        Timer::after(Duration::from_millis(5000)).await;
+                        break;
+                    }
+                    _ => {
+                        info!("rec Other MQTT Error: {:?}", mqtt_error);
+                        Timer::after(Duration::from_millis(5000)).await;
+                        break;
+                    }
+                }
+                None => {}
+            }
             count += 1;
-            Timer::after(Duration::from_millis(1000)).await;
         }
     }
 
