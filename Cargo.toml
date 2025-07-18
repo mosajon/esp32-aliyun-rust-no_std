@@ -39,9 +39,9 @@ esp-wifi = { version = "0.14.1", features = [
 ] }
 smoltcp = { version = "0.12.0", default-features = false, features = [ "medium-ethernet", "socket-raw"] }
 static_cell = { version = "2.1.1", features = ["nightly"] }
-rust-mqtt = { version = "0.3.0", default-features = false }
+rust-mqtt = { version = "0.3.0", default-features = false, features = ["tls"] }
 hmac-sha256 = "1.1.12"
-esp-mbedtls = { git = "https://github.com/esp-rs/esp-mbedtls", features = ["esp32", "async"]}
+esp-mbedtls = { git = "https://github.com/esp-rs/esp-mbedtls", features = ["esp32", "async"] }
 
 [profile.dev]
 # Rust debug is too slow.
