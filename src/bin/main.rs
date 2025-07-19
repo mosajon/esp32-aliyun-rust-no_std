@@ -241,7 +241,7 @@ async fn main(spawner: Spawner) {
         let mut count: u32 = 0;
         loop {
             info!("count: {}", count);
-            if count % 60 == 0 {
+            if count % 24 == 0 {
                 match client.send_message(
                     &pub_topic,
                     "{\"params\":{\"PowerSwitch\":0},\"version\":\"1.0\"}".as_bytes(),
@@ -264,21 +264,18 @@ async fn main(spawner: Spawner) {
                 }
             }
 
-            match with_timeout(Duration::from_millis(1000), client.receive_message()).await.ok() {
+            match with_timeout(Duration::from_millis(10000), client.receive_message()).await.ok() {
                 Some(Ok((topic, message))) => {
                     let message_str = core::str::from_utf8(message).unwrap_or("<Invalid UTF-8>");
                     info!("Received message on topic {:#?}: {:#?}", topic, message_str);
-                    Timer::after(Duration::from_millis(1000)).await;
                 }
                 Some(Err(mqtt_error)) => match mqtt_error {
                     ReasonCode::NetworkError => {
                         info!("rec MQTT Network Error - Client Messsage Receive Error");
-                        Timer::after(Duration::from_millis(5000)).await;
                         break;
                     }
                     _ => {
                         info!("rec Other MQTT Error: {:?}", mqtt_error);
-                        Timer::after(Duration::from_millis(5000)).await;
                         break;
                     }
                 }
@@ -334,7 +331,7 @@ async fn net_task(mut runner: Runner<'static, WifiDevice<'static>>) {
     runner.run().await
 }
 
-static HEX_TABLE :[char;16] = ['0','1','2','3','4','5','6','7','8','9','A','B','C','D','E','F'];
+static HEX_TABLE: [char;16] = ['0','1','2','3','4','5','6','7','8','9','A','B','C','D','E','F'];
 fn to_hex(data : impl AsRef<[u8]>) -> String {
     let data = data.as_ref();
     let len = data.len();
